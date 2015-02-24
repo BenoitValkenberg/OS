@@ -2,13 +2,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/syscall.h>
-#define MYSYSCALL 272
+#define MYSYSCALL 349
 
 int main(){
 	
     char *buf [10];
     memcpy(buf, "hi kernel", strlen("hi kernel") +1);
-    syscall(MYSYSCALL, buf, 10);
+    printf("Return value : %d\n", syscall(MYSYSCALL, buf, 10));
 	
 	
 	/*FILE* f = fopen("/dev/seqgen", "r+");
