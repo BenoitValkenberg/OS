@@ -9,7 +9,8 @@ MODULE_AUTHOR("Quenti Boileau , Valkenberg Benoit");
 
 static char msg[100]={0};
 static short readPos= 0;
-static int times = 0;
+
+static int device_open = 0;
 
 static int MAJOR = 89;
 
@@ -37,29 +38,45 @@ const struct file_operations fops = {
 
 // called when module is loaded
 int init_module(void){
-	int t = register_chrseqgen(MAJOR, "SeqGen_Repeater" , &fops);
-	if(t < 0)
-		printk(KERN_ALERT "seqgen registration failed\n");
-	else
-		printk(KERN_ALERT "seqgen registered\n");
+	int t = register_chrdev(MAJOR, "SeqGen_Repeater" , &fops);
+	if(t < 0){
+		printk(KERN_ALERT "SEQGEN Error : seqgen registration failed\n");
+		return -1;
+	}
+	
+	printk(KERN_ALERT "seqgen registered\n");
+	
+	//Pas déclaré ??
+	seqgen_class = class_create(THIS_MODULE, "seqgen");
+	if (IS_ERR(seqgen_class))
+		return PTR_ERR(seqgen_class);
+	device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, minor), NULL, "seqgen");
 	
 	return t;
 }	
 
 // called when module is unloaded
 void cleanup_module(void){
-	unregister_chrseqgen(89 , "SeqGen_Repeater");
+	unregister_chrdev(MAJOR , "SeqGen_Repeater");
 }
 
 
 
 static int seqgen_open(struct inode *inod, struct file *fil){
-	times++;
-	printk(KERN_ALERT "seqgen opened %d times\n" , times);
+	if (device_open){
+		printk(KERN_ALERT "SEQGEN Error : seqgen already opened\n");
+		return -EBUSY;
+	}
+	
+	fil->f_op = &seqgen_fops;
+	device_open++;
+	printk(KERN_ALERT "seqgen opened\n" );
 	return 0;
 }
 
 static int seqgen_rls(struct inode * inod, struct file *fil){
+	if(device_open)
+		device_open--;
 	printk(KERN_ALERT "seqgen closed\n");
 	return 0;
 }
@@ -76,15 +93,8 @@ static ssize_t seqgen_read(struct file *filp, char *buff, size_t len, loff_t *of
 }
 
 static ssize_t seqgen_write(struct file *filp,const char *buff, size_t len, loff_t *off){
-	short ind = len-1;
-	short count = 0;
-	memset(msg,0,100);
-	readPos=0;
-	while(len > 0){
-		msg[count++] = buff[ind--];
-		len--;
-	}
-	return count;
+	printk(KERN_ALERT "Sorry, this operation isn't supported.\n");
+	return -EINVAL;
 }
 
 

@@ -20,6 +20,9 @@ asmlinkage long sys_seqgen(unsigned char* ptr, size_t size){
 	
 	printk("mysyscall: %s\n", seq);
 	
+	if(seq != NULL)
+		kfree(seq);
+	
 	
 	return 0;
 }
