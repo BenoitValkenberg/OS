@@ -2,27 +2,61 @@
 #include <asm/uaccess.h>
 #include <linux/slab.h>
 
+struct Sequence_t{
+	size_t size;
+	unsigned char* seq;
+};
+
+static Sequence sequence;
+
 asmlinkage long sys_seqgen(unsigned char* ptr, size_t size){
 	
-	if(ptr == NULL || size < 0){
+	if(ptr == NULL || size <= 0){
 		printk(KERN_ALERT "SEQGEN Error : Wrong arguments\n");
 		return -2;
 	}
 	
-	char* seq = kmalloc(size, GFP_KERNEL);
+	sequence = kmalloc(sizeof(Sequence) , GFP_KERNEL);
+	if(sequence == NULL){
+		printk(KERN_ALERT "SEQGEN Error : Allocation error\n");
+		return -3;
+	}
 	
-	if(seq == NULL){
+	sequence->size = size;
+	sequence->seq = kmalloc(size, GFP_KERNEL);
+	
+	if(sequence->seq == NULL){
 		printk(KERN_ALERT "SEQGEN Error : Allocation error\n");
 		return -3;
 	}
 			
-	copy_from_user(seq, ptr, strlen_user(ptr));
+	//TODO faut-il vraiment allouer seq du coup ??
+	copy_from_user(sequence->seq, ptr, strlen_user(ptr));
 	
-	printk("mysyscall: %s\n", seq);
+	printk("mysyscall: %s\n", sequence->seq);
 	
-	if(seq != NULL)
-		kfree(seq);
-	
+	//TODO REMOVE
+	freeSequence();
 	
 	return 0;
 }
+
+Sequence getSequence(void){
+	/*if(sequence == NULL){
+		printk(KERN_ALERT "SEQGEN Error : No sequence encoded\n");
+		return NULL;
+	}*/
+		
+	return sequence;
+}
+
+void freeSequence(void){
+	if(sequence !=NULL){
+		if(sequence->seq != NULL)
+			kfree(sequence->seq);
+		kfree(sequence);
+	}
+}
+
+
+
