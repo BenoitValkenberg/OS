@@ -13,6 +13,10 @@ static short readPos= 0;
 static int device_open = 0;
 static int MAJOR = 261;
 static char* name = "seqgen";
+static int mode;
+
+extern Sequence sequence;
+
 static struct class *seqgen_class; // Global variable for the device class
 
 // called when 'open' system call is done on the seqgen file
@@ -33,6 +37,7 @@ const struct file_operations fops = {
 	.open = seqgen_open,
 	.write = seqgen_write,
 	.release = seqgen_release,
+	.ioctl =  seqgen_ioctl,
 };
 
 
@@ -88,39 +93,51 @@ static int seqgen_release(struct inode * inod, struct file *fil){
 static ssize_t seqgen_read(struct file *filp, char *buff, size_t len, loff_t *off){
 	
 	printk(KERN_ALERT "SEQGEN Message : READ\n");
-	/*short count = 0;
+	short count = 0;
 	
-	Sequence sequence = getSequence();
 	if(sequence == NULL){
 		printk(KERN_ALERT "SEQGEN Error : No sequence encoded\n");
 		return -1;
 	}
 	
-	printk(KERN_ALERT "The sequence is :\n");
-	printk(KERN_ALERT sequence->seq);*/
+	if(mode == 0){
+		while(1){
+			printk(KERN_ALERT sequence->seq);
+		}
+	}
 	
-	/*while (len &&(sequence->seq[readPos] != 0)){
+	else{
+		printk(KERN_ALERT sequence->seq);
+	}
+	
+	return count;
+}
+
+static ssize_t seqgen_write(struct file *filp,const char *buff, size_t len, loff_t *off){
+	printk(KERN_ALERT "SEQGEN Error : This operation isn't supported.\n");
+	return -EINVAL;
+}
+
+int seqgen_ioctl(struct inode *inode,struct file *filp,unsigned int cmd,unsigned long arg) { 
+	if(cmd == 0)
+		mode = 0;
+	else if(cmd == 1)
+		mode = 1;
+	else
+		printk(KERN_ALERT "SEQGEN Error : Wrong mode\n");
+	
+	printk(KERN_ALERT "Mode updated !\n");
+	return 0;
+}
+
+
+
+/*while (len &&(sequence->seq[readPos] != 0)){
 		put_user(sequence->seq[readPos] , buff++); //Copy byte from kernel space to user space
 		count++;
 		len--;
 		readPos++;
 	}*/
-	return count;
-}
-
-static ssize_t seqgen_write(struct file *filp,const char *buff, size_t len, loff_t *off){
-	printk(KERN_ALERT "Sorry, this operation isn't supported.\n");
-	return -EINVAL;
-}
-
-
-
-
-
-
-
-
-
 
 
 

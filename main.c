@@ -27,7 +27,7 @@ int main(){
 		return -2;
 	}
 	
-	if(ioctl(fd, 0, 1) == -1){
+	if(ioctl(fd, 1) == -1){
 		printf("SEQGEN Error : ioctl error");
 		return -3;
 	}

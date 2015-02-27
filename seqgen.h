@@ -1,13 +1,11 @@
-#ifndef SEQGEN_H_   /* Include guard */
+#ifndef SEQGEN_H_
 #define SEQGEN_H_
 
-typedef struct Seq_t Sequence;
-struct seq_t{
+typedef struct Sequence_t Sequence;
+struct Sequence_t{
 	size_t size;
 	unsigned char* seq;
 };
-
-Sequence getSequence(void); 
 
 void freeSequence(void);
 
