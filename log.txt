@@ -1,0 +1,87 @@
+drivers/char/seqgen_repeater.c:18:1: error: unknown type name ‘Sequence’
+ extern Sequence sequence;
+ ^
+drivers/char/seqgen_repeater.c:39:13: error: ‘seqgen_release’ undeclared here (not in a function)
+  .release = seqgen_release,
+             ^
+drivers/char/seqgen_repeater.c:40:2: error: unknown field ‘ioctl’ specified in initializer
+  .ioctl =  seqgen_ioctl,
+  ^
+drivers/char/seqgen_repeater.c:40:12: error: ‘seqgen_ioctl’ undeclared here (not in a function)
+  .ioctl =  seqgen_ioctl,
+            ^
+drivers/char/seqgen_repeater.c: In function ‘seqgen_init’:
+drivers/char/seqgen_repeater.c:56:2: error: implicit declaration of function ‘class_create’ [-Werror=implicit-function-declaration]
+  seqgen_class = class_create(THIS_MODULE, name);
+  ^
+drivers/char/seqgen_repeater.c:56:15: warning: assignment makes pointer from integer without a cast [enabled by default]
+  seqgen_class = class_create(THIS_MODULE, name);
+               ^
+drivers/char/seqgen_repeater.c:59:2: error: implicit declaration of function ‘device_create’ [-Werror=implicit-function-declaration]
+  device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, minor), NULL, name);
+  ^
+In file included from include/linux/fs.h:385:0,
+                 from drivers/char/seqgen_repeater.c:3:
+drivers/char/seqgen_repeater.c:59:42: error: ‘SEQGEN_MAJOR’ undeclared (first use in this function)
+  device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, minor), NULL, name);
+                                          ^
+include/linux/kdev_t.h:9:25: note: in definition of macro ‘MKDEV’
+ #define MKDEV(ma,mi) (((ma) << MINORBITS) | (mi))
+                         ^
+drivers/char/seqgen_repeater.c:59:42: note: each undeclared identifier is reported only once for each function it appears in
+  device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, minor), NULL, name);
+                                          ^
+include/linux/kdev_t.h:9:25: note: in definition of macro ‘MKDEV’
+ #define MKDEV(ma,mi) (((ma) << MINORBITS) | (mi))
+                         ^
+drivers/char/seqgen_repeater.c:59:56: error: ‘minor’ undeclared (first use in this function)
+  device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, minor), NULL, name);
+                                                        ^
+include/linux/kdev_t.h:9:46: note: in definition of macro ‘MKDEV’
+ #define MKDEV(ma,mi) (((ma) << MINORBITS) | (mi))
+                                              ^
+drivers/char/seqgen_repeater.c:61:9: error: ‘t’ undeclared (first use in this function)
+  return t;
+         ^
+drivers/char/seqgen_repeater.c: In function ‘seqgen_exit’:
+drivers/char/seqgen_repeater.c:68:2: error: implicit declaration of function ‘device_destroy’ [-Werror=implicit-function-declaration]
+  device_destroy(seqgen_class, first);
+  ^
+drivers/char/seqgen_repeater.c:68:31: error: ‘first’ undeclared (first use in this function)
+  device_destroy(seqgen_class, first);
+                               ^
+drivers/char/seqgen_repeater.c:69:2: error: implicit declaration of function ‘class_destroy’ [-Werror=implicit-function-declaration]
+  class_destroy(seqgen_class);
+  ^
+drivers/char/seqgen_repeater.c: In function ‘seqgen_open’:
+drivers/char/seqgen_repeater.c:80:15: error: ‘seqgen_fops’ undeclared (first use in this function)
+  fil->f_op = &seqgen_fops;
+               ^
+drivers/char/seqgen_repeater.c: In function ‘seqgen_read’:
+drivers/char/seqgen_repeater.c:96:2: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+  short count = 0;
+  ^
+drivers/char/seqgen_repeater.c:98:14: warning: comparison between pointer and integer [enabled by default]
+  if(sequence == NULL){
+              ^
+drivers/char/seqgen_repeater.c:105:22: error: expected ‘)’ before ‘sequence’
+    printk(KERN_ALERT sequence->seq);
+                      ^
+drivers/char/seqgen_repeater.c:110:21: error: expected ‘)’ before ‘sequence’
+   printk(KERN_ALERT sequence->seq);
+                     ^
+drivers/char/seqgen_repeater.c: At top level:
+drivers/char/seqgen_repeater.c:11:13: warning: ‘msg’ defined but not used [-Wunused-variable]
+ static char msg[100]={0};
+             ^
+drivers/char/seqgen_repeater.c:12:14: warning: ‘readPos’ defined but not used [-Wunused-variable]
+ static short readPos= 0;
+              ^
+drivers/char/seqgen_repeater.c:26:12: warning: ‘seqgen_rls’ declared ‘static’ but never defined [-Wunused-function]
+ static int seqgen_rls(struct inode * , struct file *);
+            ^
+drivers/char/seqgen_repeater.c:86:12: warning: ‘seqgen_release’ defined but not used [-Wunused-function]
+ static int seqgen_release(struct inode * inod, struct file *fil){
+            ^
+drivers/char/seqgen_repeater.c: In function ‘seqgen_init’:
+drivers/char/seqgen_repeater.c:62:1: warning: control reaches end of non-void function [-Wreturn-type]
