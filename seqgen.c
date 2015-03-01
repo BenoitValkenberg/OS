@@ -1,8 +1,11 @@
 #include <linux/linkage.h>
 #include <asm/uaccess.h>
 #include <linux/slab.h>
+#include <linux/seqgen.h>
+
 
 Sequence sequence;
+
 
 asmlinkage long sys_seqgen(unsigned char* ptr, size_t size){
 	
@@ -35,7 +38,7 @@ asmlinkage long sys_seqgen(unsigned char* ptr, size_t size){
 	printk("mysyscall: %s\n", sequence->seq);
 	
 	//TODO REMOVE
-	freeSequence();
+	//freeSequence();
 	
 	return 0;
 }
@@ -52,6 +55,5 @@ void freeSequence(void){
 		kfree(sequence);
 	}
 }
-
 
 
