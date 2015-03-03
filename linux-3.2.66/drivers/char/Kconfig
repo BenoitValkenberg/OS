@@ -6,6 +6,12 @@ menu "Character devices"
 
 source "drivers/tty/Kconfig"
 
+config PROC_SEQGEN
+	bool "Sequence generator and repeater"
+	default y
+	help
+		A random sequence generator and sequence repeater.
+
 config SEQGEN
 	bool "Sequence generator"
 	default y
