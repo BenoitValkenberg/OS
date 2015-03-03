@@ -125,11 +125,6 @@ static ssize_t seqgen_read(struct file *filp, char *buff, size_t len, loff_t *of
 		return -4;
 	}
 	
-	if(len > strlen(buff)) {
-		printk(KERN_ERR "[SEQGEN_REPEATER] Error : Give size iss bigger than buffer size\n");
-		return -5;
-	}
-	
 	copy_to_user(buff, sequence->seq, len);
 		/* NOT REPEATED MOD */
 	if(*mode == 1) {
