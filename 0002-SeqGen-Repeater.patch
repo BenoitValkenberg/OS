@@ -1,0 +1,367 @@
+From b1e3c62a148957c42505ab6c14da74205da17d41 Mon Sep 17 00:00:00 2001
+From: Celh <quentin.boileau@hotmail.be>
+Date: Tue, 3 Mar 2015 11:01:34 +0100
+Subject: [PATCH 2/2] SeqGen Repeater
+
+---
+ linux-3.2.66/arch/x86/include/asm/unistd_32.h   |   3 +-
+ linux-3.2.66/arch/x86/kernel/syscall_table_32.S |   1 +
+ linux-3.2.66/drivers/char/Kconfig               |  13 ++
+ linux-3.2.66/drivers/char/Makefile              |   4 +
+ linux-3.2.66/drivers/char/seqgen.c              |  67 ++++++++++
+ linux-3.2.66/drivers/char/seqgen_repeater.c     | 163 ++++++++++++++++++++++++
+ linux-3.2.66/include/linux/major.h              |   2 +
+ linux-3.2.66/include/linux/seqgen.h             |  24 ++++
+ 8 files changed, 276 insertions(+), 1 deletion(-)
+ create mode 100644 linux-3.2.66/drivers/char/seqgen.c
+ create mode 100644 linux-3.2.66/drivers/char/seqgen_repeater.c
+ create mode 100644 linux-3.2.66/include/linux/seqgen.h
+
+diff --git a/linux-3.2.66/arch/x86/include/asm/unistd_32.h b/linux-3.2.66/arch/x86/include/asm/unistd_32.h
+index 599c77d..c4d7f4a 100644
+--- a/linux-3.2.66/arch/x86/include/asm/unistd_32.h
++++ b/linux-3.2.66/arch/x86/include/asm/unistd_32.h
+@@ -354,10 +354,11 @@
+ #define __NR_setns		346
+ #define __NR_process_vm_readv	347
+ #define __NR_process_vm_writev	348
++#define __NR_seqgen 349
+ 
+ #ifdef __KERNEL__
+ 
+-#define NR_syscalls 349
++#define NR_syscalls 350
+ 
+ #define __ARCH_WANT_IPC_PARSE_VERSION
+ #define __ARCH_WANT_OLD_READDIR
+diff --git a/linux-3.2.66/arch/x86/kernel/syscall_table_32.S b/linux-3.2.66/arch/x86/kernel/syscall_table_32.S
+index 9a0e312..6ba3e17 100644
+--- a/linux-3.2.66/arch/x86/kernel/syscall_table_32.S
++++ b/linux-3.2.66/arch/x86/kernel/syscall_table_32.S
+@@ -348,3 +348,4 @@ ENTRY(sys_call_table)
+ 	.long sys_setns
+ 	.long sys_process_vm_readv
+ 	.long sys_process_vm_writev
++	.long sys_seqgen
+diff --git a/linux-3.2.66/drivers/char/Kconfig b/linux-3.2.66/drivers/char/Kconfig
+index 4364303..cf9f75a 100644
+--- a/linux-3.2.66/drivers/char/Kconfig
++++ b/linux-3.2.66/drivers/char/Kconfig
+@@ -6,6 +6,19 @@ menu "Character devices"
+ 
+ source "drivers/tty/Kconfig"
+ 
++config SEQGEN
++	bool "Sequence generator"
++	default y
++	help
++		A random sequence generator.
++		
++config SEQGEN_REPEATER
++	bool "Sequence repeater"
++	depends on SEQGEN
++	default y
++	help
++		A sequence repeater
++
+ config DEVKMEM
+ 	bool "/dev/kmem virtual device support"
+ 	default y
+diff --git a/linux-3.2.66/drivers/char/Makefile b/linux-3.2.66/drivers/char/Makefile
+index 32762ba..4014fc5 100644
+--- a/linux-3.2.66/drivers/char/Makefile
++++ b/linux-3.2.66/drivers/char/Makefile
+@@ -65,3 +65,7 @@ obj-$(CONFIG_JS_RTC)		+= js-rtc.o
+ js-rtc-y = rtc.o
+ 
+ obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
++
++obj-$(CONFIG_SEQGEN) += seqgen.o
++obj-$(CONFIG_SEQGEN_REPEATER) += seqgen_repeater.o
++
+diff --git a/linux-3.2.66/drivers/char/seqgen.c b/linux-3.2.66/drivers/char/seqgen.c
+new file mode 100644
+index 0000000..20d5328
+--- /dev/null
++++ b/linux-3.2.66/drivers/char/seqgen.c
+@@ -0,0 +1,67 @@
++/*
++ * seqgen.c -- A sequence generator
++ * ==================================================
++ * Valkenberg Benoit, Boileau Quentin
++ *
++ */
++
++#include <linux/linkage.h>
++#include <asm/uaccess.h>
++#include <linux/slab.h>
++#include <linux/seqgen.h>
++#include <linux/string.h>
++
++#define MAX_SIZE 1000 // Limit the size of the sequence
++
++Sequence sequence;
++
++asmlinkage long sys_seqgen(unsigned char* ptr, size_t size){
++	
++	if(ptr <= 0 || size <= 0 || size > MAX_SIZE){
++		printk(KERN_ERR "[SEQGEN] Error : Wrong arguments\n");
++		return -2;
++	}
++	
++	if(size > strlen(ptr)) {
++		printk(KERN_ERR "[SEQGEN] Error : Given size is bigger than sequence size\n");
++		return -3;
++	}
++	
++	if(sequence != NULL){
++		freeSequence();
++	}
++	
++	sequence = kmalloc(sizeof(Sequence) , GFP_KERNEL);
++	if(sequence == NULL){
++		printk(KERN_ERR "[SEQGEN] Error : Allocation error\n");
++		return -4;
++	}
++	
++	sequence->size = size;
++	sequence->seq = kmalloc(size + 1, GFP_KERNEL);
++	sequence->seq[size] = '\0';
++	
++	if(sequence->seq == NULL){
++		printk(KERN_ERR "[SEQGEN] Error : Allocation error\n");
++		return -4;
++	}
++
++	copy_from_user(sequence->seq, ptr, size);
++	
++	printk("[SEQGEN] Sequence of size %zu is set to %s\n", size,  sequence->seq);
++	
++	return 0;
++}
++
++void freeSequence(void) {
++
++	if(sequence !=NULL) {
++		if(sequence->seq != NULL)
++			kfree(sequence->seq);
++		kfree(sequence);
++	printk("[SEQGEN] Sequence unset\n");
++	}	
++}
++
++
++
+diff --git a/linux-3.2.66/drivers/char/seqgen_repeater.c b/linux-3.2.66/drivers/char/seqgen_repeater.c
+new file mode 100644
+index 0000000..57e85cf
+--- /dev/null
++++ b/linux-3.2.66/drivers/char/seqgen_repeater.c
+@@ -0,0 +1,163 @@
++/*
++ * seqgen_repeater.c -- A sequence generator repeater
++ * ==================================================
++ * Valkenberg Benoit, Boileau Quentin
++ *
++ */
++
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/fs.h>
++#include <asm/uaccess.h>
++#include <linux/seqgen.h>
++#include <linux/ioctl.h>
++#include <linux/kernel.h>
++#include <linux/major.h>
++#include <linux/device.h>
++#include <linux/slab.h>
++
++
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("SeqGen Repeater");
++MODULE_AUTHOR("Quentin Boileau , Benoit Valkenberg");
++
++
++static int device_open = 0;
++static int* mode; // Repeater mode | 0 => repeate (default) | 1 => single read
++
++
++static struct class *seqgen_class; // Global variable for the device class
++
++static int seqgen_open(struct inode * , struct file *);
++static int seqgen_release(struct inode * , struct file *);
++static ssize_t seqgen_read(struct file *, char * , size_t, loff_t *);
++static ssize_t seqgen_write(struct file *, const char * , size_t , loff_t *);
++
++static long seqgen_ioctl(struct file *filp,unsigned int cmd,unsigned long arg);
++
++
++static const struct file_operations seqgen_fops = {
++	.owner = THIS_MODULE,
++	.read = seqgen_read,
++	.open = seqgen_open,
++	.write = seqgen_write,
++	.release = seqgen_release,
++	.unlocked_ioctl = seqgen_ioctl,
++};
++
++
++
++int init_module(void) {
++
++	int result = register_chrdev(SEQGEN_MAJOR, "seqgen", &seqgen_fops);
++	if(result < 0) {
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : seqgen_repeater registration failed\n");
++		return result;
++	}
++	
++	seqgen_class = class_create(THIS_MODULE, "seqgen");
++	if (IS_ERR(seqgen_class)) {
++		unregister_chrdev(SEQGEN_MAJOR, "seqgen");
++		return PTR_ERR(seqgen_class);
++	}
++		
++	device_create(seqgen_class, NULL, MKDEV(SEQGEN_MAJOR, 1), NULL, "seqgen");
++	
++	if(mode == NULL) {
++		mode = kmalloc(sizeof(int), GFP_KERNEL);
++		if(mode == NULL) {
++			printk(KERN_ERR "[SEQGEN_REPEATER] Error : allocation error\n");
++			return -2;
++		}
++	}
++	*mode = 0;
++	
++	return 0;
++}
++
++
++void cleanup_module(void) {
++
++	unregister_chrdev(SEQGEN_MAJOR, "seqgen");
++	device_destroy(seqgen_class, MKDEV(SEQGEN_MAJOR, 1));
++	class_destroy(seqgen_class);
++	if(mode != NULL) {
++		kfree(mode);
++		mode = NULL;
++	}
++}
++
++
++
++static int seqgen_open(struct inode *inod, struct file *fil) {
++
++	if (device_open){
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : seqgen already opened\n");
++		return -EBUSY;
++	}
++	
++	fil->f_op = &seqgen_fops;
++	device_open++;
++	try_module_get(THIS_MODULE);
++	
++	return 0;
++}
++
++static int seqgen_release(struct inode * inod, struct file *fil) {
++
++	if(device_open)
++		device_open--;
++		
++	module_put(THIS_MODULE);
++	
++	return 0;
++}
++
++static ssize_t seqgen_read(struct file *filp, char *buff, size_t len, loff_t *off){
++	
++	if(sequence == NULL) {
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : Sequence unset\n");
++		return -3;
++	}
++	
++	if(len < 0) {
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : Size argument not valid\n");
++		return -4;
++	}
++	
++	if(len > strlen(buff)) {
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : Give size iss bigger than buffer size\n");
++		return -5;
++	}
++	
++	copy_to_user(buff, sequence->seq, len);
++		/* NOT REPEATED MOD */
++	if(*mode == 1) {
++		*off += sequence->size;
++		return 2 * sequence->size - *off;
++	}
++	
++	return sequence->size;
++}
++
++static ssize_t seqgen_write(struct file *filp,const char *buff, size_t len, loff_t *off) {
++
++	printk(KERN_WARNING "[SEQGEN_REPEATER] Error : This operation isn't supported.\n");
++	return -EINVAL;
++}
++
++static long seqgen_ioctl(struct file *filp,unsigned int cmd,unsigned long arg) { 
++
++	if(cmd == 0)
++		*mode = 0;
++	else if(cmd == 1)
++		*mode = 1;
++	else
++		printk(KERN_ERR "[SEQGEN_REPEATER] Error : Wrong mode\n");
++
++	return 0;
++}
++
++module_init(init_module);
++module_exit(cleanup_module);
++
+diff --git a/linux-3.2.66/include/linux/major.h b/linux-3.2.66/include/linux/major.h
+index 6a8ca98..e6903aa 100644
+--- a/linux-3.2.66/include/linux/major.h
++++ b/linux-3.2.66/include/linux/major.h
+@@ -174,4 +174,6 @@
+ #define BLOCK_EXT_MAJOR		259
+ #define SCSI_OSD_MAJOR		260	/* open-osd's OSD scsi device */
+ 
++#define SEQGEN_MAJOR 261	/* seqgen_repeater device */
++
+ #endif
+diff --git a/linux-3.2.66/include/linux/seqgen.h b/linux-3.2.66/include/linux/seqgen.h
+new file mode 100644
+index 0000000..fcf8610
+--- /dev/null
++++ b/linux-3.2.66/include/linux/seqgen.h
+@@ -0,0 +1,24 @@
++/*
++ * seqgen_repeater.h
++ * ==================================================
++ * Valkenberg Benoit, Boileau Quentin
++ *
++ */
++
++#ifndef SEQGEN_H_
++#define SEQGEN_H_
++
++typedef struct Sequence_t* Sequence;
++struct Sequence_t{
++	size_t size;
++	unsigned char* seq;
++};
++
++extern Sequence sequence;
++
++/*
++ * Free kernel memory
++ */
++void freeSequence(void);
++
++#endif // SEQGEN_H_
+-- 
+1.9.1
+
