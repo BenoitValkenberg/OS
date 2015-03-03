@@ -65,3 +65,7 @@ obj-$(CONFIG_JS_RTC)		+= js-rtc.o
 js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
+
+obj-$(CONFIG_SEQGEN) += seqgen.o
+obj-$(CONFIG_SEQGEN_REPEATER) += seqgen_repeater.o
+

@@ -174,4 +174,6 @@
 #define BLOCK_EXT_MAJOR		259
 #define SCSI_OSD_MAJOR		260	/* open-osd's OSD scsi device */
 
+#define SEQGEN_MAJOR 261	/* seqgen_repeater device */
+
 #endif

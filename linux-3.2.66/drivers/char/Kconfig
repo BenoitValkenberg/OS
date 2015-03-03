@@ -6,6 +6,19 @@ menu "Character devices"
 
 source "drivers/tty/Kconfig"
 
+config SEQGEN
+	bool "Sequence generator"
+	default y
+	help
+		A random sequence generator.
+		
+config SEQGEN_REPEATER
+	bool "Sequence repeater"
+	depends on SEQGEN
+	default y
+	help
+		A sequence repeater
+
 config DEVKMEM
 	bool "/dev/kmem virtual device support"
 	default y
